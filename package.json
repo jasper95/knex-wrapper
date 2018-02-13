@@ -1,0 +1,22 @@
+{
+  "name": "dbwrapper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.8.0"
+  },
+  "dependencies": {
+    "bluebird": "^3.5.1",
+    "knex": "^0.14.2",
+    "lodash": "^4.17.5",
+    "mysql": "^2.15.0"
+  }
+}
