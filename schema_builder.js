@@ -19,12 +19,17 @@ class SchemaBuilder {
     const initColumn = (col, t, update = false) => {
       const {
         type, type_params = [],
-        unique, column_name,
-        required = true, unsigned = false,
+        unique, column_name, default: defaultTo = '',
+        required = false, unsigned = false,
         foreign_key } = col
       let query = t[type](column_name, ...[type_params])
+
       if (required) {
         query = query.notNullable()
+      } else if (defaultTo) {
+        query = query.defaultTo(defaultTo)
+      } else {
+        query = query.nullable()
       }
       if (unsigned) {
         query = query.unsigned()
@@ -95,15 +100,11 @@ class SchemaBuilder {
     const { knex } = this
     await knex.schema.alterTable(table_name, (t) => {
       t.dropUnique(column_name)
-    }).catch(err => {
-      console.log('@drop unique err', err)
-    })
+    }).catch(err => {})
     if (unique) {
       await knex.schema.alterTable(table_name, (t) => {
         t.unique(column_name)
-      }).catch(err => {
-        console.log('@create unique err', err)
-      })
+      }).catch(err => {})
     }
   }
   async updateIndex(table_name, { column_name }, indices) {
@@ -114,9 +115,7 @@ class SchemaBuilder {
     if (indices.includes(column_name)) {
       await knex.schema.alterTable(table_name, (t) => {
         t.index([column_name])
-      }).catch(err => {
-
-      })
+      }).catch(err => { })
     }
   }
 }

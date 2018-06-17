@@ -7,11 +7,13 @@ module.exports =  {
                 {
                     "column_name": "name",
                     "type": "string",
-                    "unique": true
+                    "unique": true,
+                    "required": true
                 },
                 {
                     "column_name": "legal_name",
-                    "type": "string"
+                    "type": "string",
+                    "required": true
                 }
             ]
         },
@@ -20,12 +22,14 @@ module.exports =  {
             "columns": [
                 {
                     "column_name": "username",
-                    "type": "string"
+                    "type": "string",
+                    "required": true
                 },
                 {
                     "column_name": "company_id",
                     "type": "uuid",
                     "foreign_key": true,
+                    "required": true,
                     "reference_table": "tbl_Company",
                     "reference_column": "id",
                     "on_update": 'CASCADE',

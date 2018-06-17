@@ -15,12 +15,12 @@ class QueryWrapper {
         let columns = Validator.validateTableColumns(this.schema, table)
         if(Array.isArray(data)) {
             if (data.length)
-                data.forEach(e => Validator.validateCreate(e, columns))
+                data = data.map(e => Validator.validateCreate(e, columns))
             else
                 throw { success: false, message: 'Data is Empty' }
         }
         else
-            Validator.validateCreate(data, columns)
+            data = Validator.validateCreate(data, columns)
 
         return this
             .knex(table)
