@@ -1,5 +1,5 @@
 {
-  "name": "dbwrapper",
+  "name": "knex-wrapper",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -15,9 +15,10 @@
   },
   "dependencies": {
     "bluebird": "^3.5.1",
-    "knex": "^0.14.2",
-    "lodash": "^4.17.5",
-    "mysql": "^2.15.0",
-    "pg": "^7.4.3"
+    "lodash": "^4.17.5"
+  },
+  "respository": {
+    "type": "git",
+    "url": "https://github.com/jasper95/knexDBWrapper"
   }
 }
