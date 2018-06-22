@@ -64,9 +64,10 @@ class SchemaBuilder {
     if (!hasTable) {
       await knex
         .schema
-        .createTableIfNotExists(table_name, (t) => {
+        .createTable(table_name, (t) => {
           t.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary()
-          t.timestamps(true, true)
+          table.timestamp('created_at').defaultTo(knex.fn.now());
+          table.timestamp('updated_at').defaultTo(knex.raw('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'));
         })
     }
     await knex.schema.alterTable(table_name, (t) => {

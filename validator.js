@@ -3,7 +3,7 @@ const {
 } = require('./utility')
 
 class Validator {
-    static validateCreate(data, columns) {
+    static validateCreate(data, columns, upsert) {
         data =  { ...data }
         this.validateKeysExists(
             columns.filter(e => e.required)
@@ -22,7 +22,8 @@ class Validator {
                         throw { success: false, message: `Column ${column.column_name} type mismatch. Expected ${column.type} found ${val_type}`}
                     }
                 } else {
-                    delete data[key]
+                    if((!upsert && key !== 'id') || !upsert)
+                        delete data[key]
                 }
             })
         return data
@@ -41,7 +42,7 @@ class Validator {
         return data.id
     }
 
-    static validateParams(schema, table, data, validator) {
+    static validateParams(schema, table, data, validator, upsert = false) {
         let columns = this.validateTableColumns(schema, table)
         let is_array = false
         if(Array.isArray(data)) {
@@ -52,7 +53,7 @@ class Validator {
                 throw { success: false, message: 'Data is Empty' }
         }
         else
-            data = validator(data, columns)
+            data = validator(data, columns, upsert)
         return { data, is_array, columns }
     }
 

@@ -8,14 +8,14 @@ const table = 'tbl_Company'
 const legal_name = 'nana'
 const arr = [{name: 'im', legal_name }, {name: 'in', legal_name }]
 describe('Query Wrapper Tests', () => {
-    before(async() => {
-        await knex.table(table).delete()
-    })
     describe('Test Mutations', () => {
         const name = 'Changed man'
         const name2 = 'Wtf Man'
         let inserted
         let inserted_arr
+        before(async() => {
+            await knex.table(table).delete()
+        })
         it('Should insert', async() => {
             ([inserted, inserted_arr] = await
                 Promise.all([
@@ -26,6 +26,15 @@ describe('Query Wrapper Tests', () => {
             expect(inserted).be.a('object')
             expect(inserted_arr).be.a('array')
             expect(inserted_arr.length).be.equal(2)
+        })
+        it('Should upsert', async() => {
+            const new_name = 'Im new Dude'
+            const new_inserted = { name: 'Someone like new', legal_name: 'Someone like new' }
+            const updated = await QueryWrapper.upsert(table, {...inserted, name: new_name })
+            const res = await QueryWrapper.upsert(table, new_inserted)
+            expect(res).be.a('object')
+            expect(updated.id).be.equal(inserted.id)
+            expect(updated.name).be.equal(new_name)
         })
         it('Should update by id', async() => {
             const name = 'Changed man'
@@ -48,6 +57,7 @@ describe('Query Wrapper Tests', () => {
     describe('Test Queries', async() => {
         before(async() => {
             // add Data
+            await knex.table(table).delete()
             await knex.table(table).insert(arr)
         })
         it('Query List', async() => {
