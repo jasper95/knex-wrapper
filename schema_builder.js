@@ -9,7 +9,7 @@ class SchemaBuilder {
 
   async setupSchema() {
     const createTables = (tables) => Promise.mapSeries(tables, this.createTable.bind(this))
-    await this.knex.raw('create extension if not exists "uuid-ossp"')
+    // await this.knex.raw('create extension if not exists "uuid-ossp"')
     return createTables(this.schema.tables)
   }
 
@@ -61,17 +61,17 @@ class SchemaBuilder {
       await Promise.map(columns, col => this.updateForeignKey(table_name, col))
     }
 
-    await knex
-            .schema
-            .createTableIfNotExists(table_name, (t) => {
-              if (!hasTable) {
-                t.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary()
-                t.timestamps(true, true)
-              }
-              new_columns
-                .map(col => initColumn(col, t))
-            })
+    if (!hasTable) {
+      await knex
+        .schema
+        .createTableIfNotExists(table_name, (t) => {
+          t.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary()
+          t.timestamps(true, true)
+        })
+    }
     await knex.schema.alterTable(table_name, (t) => {
+      new_columns
+        .map(col => initColumn(col, t))
       _.differenceBy(columns, new_columns, 'column_name')
         .map(col => initColumn(col, t, true))
     })
