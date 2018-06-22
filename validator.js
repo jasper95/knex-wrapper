@@ -28,8 +28,32 @@ class Validator {
         return data
     }
 
-    static validateUpdate() {
+    static validateUpdate(data) {
+        if (!data.id)
+            throw { message: 'id is required', success: false }
+        const { created_at, updated_at, ...rest } = data
+        return rest
+    }
 
+    static validateDelete(data) {
+        if (!data.id)
+            throw { message: 'id is required', success: false }
+        return data.id
+    }
+
+    static validateParams(schema, table, data, validator) {
+        let columns = this.validateTableColumns(schema, table)
+        let is_array = false
+        if(Array.isArray(data)) {
+            is_array = true
+            if (data.length)
+                data = data.map(e => validator(e, columns))
+            else
+                throw { success: false, message: 'Data is Empty' }
+        }
+        else
+            data = validator(data, columns)
+        return { data, is_array, columns }
     }
 
     static validateTableColumns(schema, table) {
@@ -50,7 +74,7 @@ class Validator {
                     (!provided_keys.includes(key))
                     || (typeof data[key] === 'string' && !data[key])
                 ) {
-                    throw { message: `${key} is required` }
+                    throw { success: false, message: `${key} is required` }
                 }
                 return true
             })
