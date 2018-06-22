@@ -9,7 +9,7 @@ class SchemaBuilder {
 
   async setupSchema() {
     const createTables = (tables) => Promise.mapSeries(tables, this.createTable.bind(this))
-    // await this.knex.raw('create extension if not exists "uuid-ossp"')
+    await this.knex.raw('create extension if not exists "uuid-ossp"')
     return createTables(this.schema.tables)
   }
 

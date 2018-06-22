@@ -5,6 +5,8 @@ class QueryWrapper {
     constructor(schema, knex) {
         this.schema = schema
         this.knex = knex
+        this.create = this.create.bind(this)
+        this.create = this.list.bind(this)
     }
 
     list(table, fields = [], sort_column, order = 'asc') {
