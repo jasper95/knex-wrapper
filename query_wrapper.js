@@ -3,19 +3,174 @@ const { returnColumns } = require('./utility')
 const util = require('util')
 
 class QueryWrapper {
-    constructor(schema, knex) {
+    constructor(schema, knex, config) {
         this.schema = schema
-        this.knex = knex
+        this.knex_lib = knex
+        this.knex = knex(config)
+        this.config = config
+
         this.insert = this.insert.bind(this)
         this.filter = this.filter.bind(this)
         this.updateById = this.updateById.bind(this)
         this.updateById = this.updateById.bind(this)
         this.deleteById = this.deleteById.bind(this)
         this.deleteByFilter = this.deleteByFilter.bind(this)
-        this.upser = this.upsert.bind(this)
+        this.upsert = this.upsert.bind(this)
     }
 
-    withTransaction(query) {
+    _checkDatabase() {
+        return this.knex.raw('select 1+1 as result')
+            .then(() => true)
+            .catch(() => false)
+    }
+
+    listTables() {
+        return this.knex
+            .raw(`SELECT * FROM pg_catalog.pg_tables WHERE schemaname='public'`)
+            .then(res => res.rows)
+    }
+
+    listIndices(table) {
+        return this.knex
+            .raw(`select * from pg_indexes where tablename = '${table}'`)
+            .then(res => res.rows)
+    }
+
+    listForeignKeys(table) {
+        return this.knex
+            .raw(`select * from information_schema.table_constraints where table_name = '${table}' AND constraint_type = 'FOREIGN KEY'`)
+            .then(res => res.rows)
+    }
+
+    listColumns(table) {
+        return this.knex
+            .table(table).columnInfo()
+            .then(res => Object.keys(res))
+    }
+
+    async _createOrDropDatabase(action, database) {
+        await this.knex.destroy() // destroy temporarily
+        delete this.config.connection.database
+        this.knex = this.knex_lib(this.config) //
+        return this.knex
+            .raw(action.toLowerCase())
+            .then(() => {
+                this.config.connection.database = database
+                this.knex = this.knex_lib(this.config)
+                return true
+            })
+            .catch(() => false)
+    }
+
+    async createDatabase(database) {
+        return this._createOrDropDatabase('CREATE DATABASE ' + database, database)
+    }
+
+    createTable(table) {
+        return this.knex.schema
+            .createTable(table, (t) => {
+                t.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary()
+                t.timestamps(true, true)
+            })
+    }
+
+    createColumns(table, columns) {
+        const initColumn = (col, t) => {
+            const {
+                type, type_params = [],
+                unique, column_name, default: defaultTo = '',
+                required = false, unsigned = false,
+                foreign_key } = col
+            let query = t[type](column_name, ...[type_params])
+
+            if (required) {
+                query = query.notNullable()
+            } else if (defaultTo) {
+                query = query.defaultTo(defaultTo)
+            } else {
+                query = query.nullable()
+            }
+            if (unsigned) {
+                query = query.unsigned()
+            }
+            if (unique) {
+                query = query.unique(column_name)
+            }
+            if (foreign_key) {
+                const {
+                reference_column, reference_table,
+                on_update, on_delete
+                } = col
+                t.foreign(column_name)
+                .references(reference_column)
+                .inTable(reference_table)
+                .onUpdate(on_update || 'NO ACTION')
+                .onDelete(on_delete || 'NO ACTION')
+            }
+        }
+        return this.knex.schema.alterTable(table, (t) => {
+            columns.forEach(e => initColumn(e, t))
+        })
+    }
+
+    createIndex(table, column) {
+        return knex.schema.alterTable(table, (t) => {
+            t.index([column])
+          })
+    }
+
+    createUnique(table, column) {
+        return knex.schema.alterTable(table, (t) => {
+            t.unique(column)
+          })
+    }
+
+    createForeignKey(table, { column, on_update, on_delete, reference_table, reference_column }) {
+        return knex.schema.table(table, (t) => {
+            t.foreign(column)
+              .references(reference_column)
+              .inTable(reference_table)
+              .onUpdate(on_update || 'NO ACTION')
+              .onDelete(on_delete || 'NO ACTION')
+          })
+    }
+
+    async dropDatabase(database) {
+        return this._createOrDropDatabase('DROP DATABASE IF EXISTS ' + database, database)
+    }
+
+    dropTable(table) {
+        return this.knex.schema.dropTable(table)
+    }
+
+    dropColumns(table, columns) {
+        return knex.schema.table(table, (t) => {
+            t.dropColumn(columns)
+        })
+    }
+
+    dropIndex(table, column) {
+        return knex.schema.alterTable(table, (t) => {
+            t.dropIndex(column)
+        })
+    }
+
+    dropUnique(table, column) {
+        return knex.schema.alterTable(table, (t) => {
+            t.dropUnique(column)
+          })
+    }
+
+    async dropForeignKey(table, column) {
+        await knex.schema.table(table, (t) => {
+            t.dropForeign(column)
+          })
+        return knex.schema.table(table, (t) => {
+            t.dropIndex([], `${table}_${column}_foreign`.toLowerCase())
+        })
+    }
+
+    _withTransaction(query) {
         return this.knex.transaction((trx) => {
             return query
                 .then(trx.commit)
@@ -39,7 +194,7 @@ class QueryWrapper {
                 this.schema, table, data, Validator.validateCreate.bind(Validator))
             )
         if (is_array) {
-            return this.withTransaction(
+            return this._withTransaction(
                 this.knex
                     .batchInsert(table, data, options.batch_size)
                     .returning(returnColumns(columns))
@@ -69,7 +224,7 @@ class QueryWrapper {
                 .then(res => res.rows[0])
         }
         if (is_array) {
-            return this.withTransaction(
+            return this._withTransaction(
                 Promise.map(data, upsertData)
             )
         }
@@ -91,7 +246,7 @@ class QueryWrapper {
                 .then(([res]) => res)
 
         if (is_array) {
-            return this.withTransaction(
+            return this._withTransaction(
                 Promise.map(data, update)
             )
         }
@@ -100,7 +255,7 @@ class QueryWrapper {
 
     updateByFilter(table, data, filter = {}) {
         const columns = Validator.validateTableColumns(this.schema, table)
-        return this.withTransaction(
+        return this._withTransaction(
             this.knex(table)
             .where(filter)
             .returning(returnColumns(columns))
@@ -122,7 +277,7 @@ class QueryWrapper {
             query = query
                 .where({ id: data })
         }
-        return this.withTransaction(
+        return this._withTransaction(
             query
                 .returning('id')
                 .delete()
@@ -131,7 +286,7 @@ class QueryWrapper {
     }
 
     deleteByFilter(table, filter = {}) {
-        return this.withTransaction(
+        return this._withTransaction(
             this.knex(table)
                 .where(filter)
                 .returning('id')

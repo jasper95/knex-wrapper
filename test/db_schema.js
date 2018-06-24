@@ -1,5 +1,5 @@
 module.exports =  {
-    "schema": "dbTemplate",
+    "database": "db_template",
     "tables": [
         {
             "table_name": "tbl_Company",

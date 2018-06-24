@@ -1,12 +1,38 @@
 const db_schema = require('./db_schema')
-const knex = require('knex')(require('../config'))
+const config = require('../config')
+const knex = require('knex')
 const chai = require('chai')
     , { expect } = chai
 const Promise = require('bluebird')
-const QueryWrapper = new (require('../query_wrapper'))(db_schema, knex)
+const QueryWrapper = new (require('../query_wrapper'))(db_schema, knex, config)
+const SchemaBuilder = new (require('../schema_builder'))(db_schema, QueryWrapper)
 const table = 'tbl_Company'
 const legal_name = 'nana'
 const arr = [{name: 'im', legal_name }, {name: 'in', legal_name }]
+
+describe('Schema Builder Tests', () => {
+    it('Query helper should create database', async() => {
+        await QueryWrapper.dropDatabase(db_schema.database)
+        await QueryWrapper.createDatabase(db_schema.database)
+        const res = await QueryWrapper._checkDatabase()
+        expect(res).be.equal(true)
+    })
+    it('Schema Builder should setup schema', async() => {
+        await QueryWrapper.dropDatabase(db_schema.database)
+        await SchemaBuilder.setupSchema()
+        const res = await QueryWrapper._checkDatabase()
+        expect(res).be.equal(true)
+    })
+    it('Should Display Tables', async() => {
+        const res = await QueryWrapper.listTables()
+        expect(res).be.a('array')
+    })
+    it('Should Display Table colmuns', async() => {
+        const res = await QueryWrapper.listColumns(table)
+        expect(res).be.a('array')
+    })
+})
+
 describe('Query Wrapper Tests', () => {
     describe('Test Mutations', () => {
         const name = 'Changed man'
@@ -14,7 +40,7 @@ describe('Query Wrapper Tests', () => {
         let inserted
         let inserted_arr
         before(async() => {
-            await knex.table(table).delete()
+            await QueryWrapper.knex.table(table).delete()
         })
         it('Should insert', async() => {
             ([inserted, inserted_arr] = await
@@ -57,8 +83,8 @@ describe('Query Wrapper Tests', () => {
     describe('Test Queries', async() => {
         before(async() => {
             // add Data
-            await knex.table(table).delete()
-            await knex.table(table).insert(arr)
+            await QueryWrapper.knex.table(table).delete()
+            await QueryWrapper.knex.table(table).insert(arr)
         })
         it('Query List', async() => {
             const result = await QueryWrapper.filter(table, {}, ['name', 'legal_name'])
