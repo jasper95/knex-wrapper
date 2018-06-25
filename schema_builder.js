@@ -12,7 +12,7 @@ class SchemaBuilder {
   async setupSchema() {
     const hasDatabase = await this.query_wrapper._checkDatabase()
     if (!hasDatabase)
-      await this.query_wrapper.createDatabase(this.schema.database)
+      await this.query_wrapper.createDatabase(this.query_wrapper.config.database)
     const setupTables = (tables) => Promise.mapSeries(tables, this.setupTable.bind(this))
     const dropTables = (tables) => Promise.map(tables, this.query_wrapper.dropTable)
     const { knex } = this.query_wrapper

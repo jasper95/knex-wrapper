@@ -106,19 +106,19 @@ class QueryWrapper {
     }
 
     createIndex(table, column) {
-        return knex.schema.alterTable(table, (t) => {
+        return this.knex.schema.alterTable(table, (t) => {
             t.index([column])
           })
     }
 
     createUnique(table, column) {
-        return knex.schema.alterTable(table, (t) => {
+        return this.knex.schema.alterTable(table, (t) => {
             t.unique(column)
           })
     }
 
     createForeignKey(table, { column, on_update, on_delete, reference_table, reference_column }) {
-        return knex.schema.table(table, (t) => {
+        return this.knex.schema.table(table, (t) => {
             t.foreign(column)
               .references(reference_column)
               .inTable(reference_table)
@@ -136,28 +136,28 @@ class QueryWrapper {
     }
 
     dropColumns(table, columns) {
-        return knex.schema.table(table, (t) => {
+        return this.knex.schema.table(table, (t) => {
             t.dropColumn(columns)
         })
     }
 
     dropIndex(table, column) {
-        return knex.schema.alterTable(table, (t) => {
+        return this.knex.schema.alterTable(table, (t) => {
             t.dropIndex(column)
         })
     }
 
     dropUnique(table, column) {
-        return knex.schema.alterTable(table, (t) => {
+        return this.knex.schema.alterTable(table, (t) => {
             t.dropUnique(column)
           })
     }
 
     async dropForeignKey(table, column) {
-        await knex.schema.table(table, (t) => {
+        await this.knex.schema.table(table, (t) => {
             t.dropForeign(column)
           })
-        return knex.schema.table(table, (t) => {
+        return this.knex.schema.table(table, (t) => {
             t.dropIndex([], `${table}_${column}_foreign`.toLowerCase())
         })
     }
