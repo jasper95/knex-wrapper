@@ -17,7 +17,7 @@ class SchemaBuilder {
     const dropTables = (tables) => Promise.map(tables, this.query_wrapper.dropTable)
     const { knex } = this.query_wrapper
     await knex.raw('create extension if not exists "uuid-ossp"')
-    const current_tables = (await this.query_wrapper.listTables()).map(e => e.tablename)
+    const current_tables = (await this.query_wrapper._listTables()).map(e => e.tablename)
     const table_names = this.schema.tables.map(e => e.table_name)
     const dropped_tables =  current_tables.filter(e => !table_names.includes(e))
     return Promise.all(setupTables(this.schema.tables), dropTables(dropped_tables))
@@ -50,16 +50,16 @@ class SchemaBuilder {
     let table_columns = []
     if (hasTable) {
       ([table_columns, new_columns] = await Promise.all([
-        this.query_wrapper.listColumns(table_name),
+        this.query_wrapper._listColumns(table_name),
         Promise.filter(columns, async(col) => !(await knex.schema.hasColumn(table_name, col.column_name)))
       ]))
       const col_names = columns.map(e => e.column_name)
       const dropped_columns = table_columns.filter(e => !col_names.includes(e) && !default_columns.includes(e))
       if (dropped_columns.length)
         await this.query_wrapper.dropColumns(table_name, dropped_columns)
-      let current_indices = (await this.query_wrapper.listIndices(table_name))
+      let current_indices = (await this.query_wrapper._listIndices(table_name))
           .map(e => e.indexname)
-      let current_fks = (await this.query_wrapper.listForeignKeys(table_name))
+      let current_fks = (await this.query_wrapper._listForeignKeys(table_name))
           .map(e => e.constraint_name)
       await Promise.map(columns, col => this.updateIndex(table_name, col, indices, current_indices))
       await Promise.map(columns, col => this.updateUnique(table_name, col, current_indices))

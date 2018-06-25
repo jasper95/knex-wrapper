@@ -24,11 +24,11 @@ describe('Schema Builder Tests', () => {
         expect(res).be.equal(true)
     })
     it('Should Display Tables', async() => {
-        const res = await QueryWrapper.listTables()
+        const res = await QueryWrapper._listTables()
         expect(res).be.a('array')
     })
     it('Should Display Table colmuns', async() => {
-        const res = await QueryWrapper.listColumns(table)
+        const res = await QueryWrapper._listColumns(table)
         expect(res).be.a('array')
     })
 })
