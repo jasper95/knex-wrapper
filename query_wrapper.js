@@ -8,35 +8,6 @@ class QueryWrapper {
         this.knex_lib = knex
         this.knex = knex(config)
         this.config = config
-
-        this.insert = this.insert.bind(this)
-        this.filter = this.filter.bind(this)
-        this.updateById = this.updateById.bind(this)
-        this.updateById = this.updateById.bind(this)
-        this.deleteById = this.deleteById.bind(this)
-        this.deleteByFilter = this.deleteByFilter.bind(this)
-        this.upsert = this.upsert.bind(this)
-
-        this._checkDatabase = this._checkDatabase.bind(this)
-        this.listTables = this.listTables.bind(this)
-        this.listIndices = this.listIndices.bind(this)
-        this.listForeignKeys = this.listForeignKeys.bind(this)
-        this.listColumns = this.listColumns.bind(this)
-
-        this._createOrDropDatabase = this._createOrDropDatabase.bind(this)
-        this.createDatabase = this.createDatabase.bind(this)
-        this.createTable = this.createTable.bind(this)
-        this.createColumns = this.createColumns.bind(this)
-        this.createIndex = this.createIndex.bind(this)
-        this.createUnique = this.createUnique.bind(this)
-        this.createForeignKey = this.createForeignKey.bind(this)
-
-        this.dropDatabase = this.dropDatabase.bind(this)
-        this.dropColumns = this.createForeignKey.bind(this)
-        this.dropForeignKey = this.dropForeignKey.bind(this)
-        this.dropTable = this.dropTable.bind(this)
-        this.dropUnique = this.dropUnique.bind(this)
-        this.dropIndex = this.dropIndex.bind(this)
     }
 
     _checkDatabase() {

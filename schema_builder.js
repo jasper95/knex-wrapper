@@ -7,12 +7,6 @@ class SchemaBuilder {
   constructor(schema, query_wrapper) {
     this.schema = schema
     this.query_wrapper = query_wrapper
-
-    this.setupSchema = this.setupSchema.bind(this)
-    this.setupTable = this.setupTable.bind(this)
-    this.updateForeignKey = this.updateForeignKey.bind(this)
-    this.updateUnique = this.updateUnique.bind(this)
-    this.updateIndex = this.updateIndex.bind(this)
   }
 
   async setupSchema() {
