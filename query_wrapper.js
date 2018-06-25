@@ -16,25 +16,25 @@ class QueryWrapper {
             .catch(() => false)
     }
 
-    listTables() {
+    _listTables() {
         return this.knex
             .raw(`SELECT * FROM pg_catalog.pg_tables WHERE schemaname='public'`)
             .then(res => res.rows)
     }
 
-    listIndices(table) {
+    _listIndices(table) {
         return this.knex
             .raw(`select * from pg_indexes where tablename = '${table}'`)
             .then(res => res.rows)
     }
 
-    listForeignKeys(table) {
+    _listForeignKeys(table) {
         return this.knex
             .raw(`select * from information_schema.table_constraints where table_name = '${table}' AND constraint_type = 'FOREIGN KEY'`)
             .then(res => res.rows)
     }
 
-    listColumns(table) {
+    _listColumns(table) {
         return this.knex
             .table(table).columnInfo()
             .then(res => Object.keys(res))

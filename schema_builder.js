@@ -72,7 +72,8 @@ class SchemaBuilder {
           t.timestamps(true, true)
         })
     }
-    await this.query_wrapper.createColumns(table_name, new_columns)
+    if (new_columns.length)
+      await this.query_wrapper.createColumns(table_name, new_columns)
     // await Promise.map(new_columns, e=> this.query_wrapper.createColumns(table, e))
     await knex.schema.alterTable(table_name, (t) => {
       _.differenceBy(columns, new_columns, 'column_name')
