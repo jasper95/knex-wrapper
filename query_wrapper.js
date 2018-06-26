@@ -71,7 +71,7 @@ class QueryWrapper {
             const {
                 type, type_params = [],
                 unique, column_name, default: defaultTo = '',
-                required = false, unsigned = false,
+                required = false, unsigned = false, index,
                 foreign_key } = col
             let query = t[type](column_name, ...[type_params])
 
@@ -86,7 +86,10 @@ class QueryWrapper {
                 query = query.unsigned()
             }
             if (unique) {
-                query = query.unique(column_name)
+                query = query.unique()
+            }
+            if (index) {
+                query = query.index()
             }
             if (foreign_key) {
                 const {

@@ -24,7 +24,7 @@ class SchemaBuilder {
   }
 
   async setupTable(table) {
-    const { table_name, columns, indices = [] } = table
+    const { table_name, columns } = table
     const { knex } = this.query_wrapper
     const syncColumn = (col, t) => {
       const {
@@ -61,7 +61,7 @@ class SchemaBuilder {
           .map(e => e.indexname)
       let current_fks = (await this.query_wrapper._listForeignKeys(table_name))
           .map(e => e.constraint_name)
-      await Promise.map(columns, col => this.updateIndex(table_name, col, indices, current_indices))
+      await Promise.map(columns, col => this.updateIndex(table_name, col, current_indices))
       await Promise.map(columns, col => this.updateUnique(table_name, col, current_indices))
       await Promise.map(columns, col => this.updateForeignKey(table_name, col, current_fks))
     } else {
@@ -72,9 +72,9 @@ class SchemaBuilder {
           t.timestamps(true, true)
         })
     }
-    if (new_columns.length)
+    if (new_columns.length){
       await this.query_wrapper.createColumns(table_name, new_columns)
-    // await Promise.map(new_columns, e=> this.query_wrapper.createColumns(table, e))
+    }
     await knex.schema.alterTable(table_name, (t) => {
       _.differenceBy(columns, new_columns, 'column_name')
         .map(col => syncColumn(col, t))
@@ -102,12 +102,11 @@ class SchemaBuilder {
     return
   }
 
-  async updateIndex(table_name, { column_name }, indices, current_indices) {
+  async updateIndex(table_name, { column_name, index },  current_indices) {
     const indexname = `${table_name}_${column_name}_index`.toLowerCase()
-    const col_has_index = indices.includes(column_name)
-    if (current_indices.includes(indexname) && !col_has_index) {
+    if (current_indices.includes(indexname) && !index) {
       return this.query_wrapper.dropIndex(table_name, column_name)
-    } else if (!current_indices.includes(indexname) && col_has_index) {
+    } else if (!current_indices.includes(indexname) && index) {
       return this.query_wrapper.createIndex(table_name, column_name)
     }
     return

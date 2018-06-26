@@ -23,7 +23,8 @@ module.exports =  {
                 {
                     "column_name": "username",
                     "type": "string",
-                    "required": true
+                    "required": true,
+                    "index": true,
                 },
                 {
                     "column_name": "company_id",
@@ -35,8 +36,7 @@ module.exports =  {
                     "on_update": 'CASCADE',
                     "on_delete": 'RESTRICT'
                 }
-            ],
-            "indices": ['username']
+            ]
         }
     ]
 }
