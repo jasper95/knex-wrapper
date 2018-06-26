@@ -70,14 +70,14 @@ class QueryWrapper {
         const initColumn = (col, t) => {
             const {
                 type, type_params = [],
-                unique, column_name, default: defaultTo = '',
+                unique, column_name, default: defaultTo,
                 required = false, unsigned = false, index,
                 foreign_key } = col
             let query = t[type](column_name, ...[type_params])
 
             if (required) {
                 query = query.notNullable()
-            } else if (defaultTo) {
+            } else if (defaultTo || defaultTo === '' || defaultTo === 0) {
                 query = query.defaultTo(defaultTo)
             } else {
                 query = query.nullable()
