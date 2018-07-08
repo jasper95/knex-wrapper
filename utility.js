@@ -7,7 +7,7 @@ const sql_type_mapper = {
         'decimal', 'float',
     ],
     string: [
-        'string'
+        'string', 'uuid'
     ]
 }
 
