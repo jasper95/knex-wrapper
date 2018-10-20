@@ -21,8 +21,20 @@ class SchemaBuilder {
       knex.raw(
         `CREATE OR REPLACE FUNCTION notify_trigger() RETURNS trigger AS $$
           DECLARE
+            old_val json;
+            new_val json;
           BEGIN
-            PERFORM pg_notify('watchers', json_build_object('table', TG_TABLE_NAME, 'payload', NEW.id, 'type', TG_OP)::text);
+            IF TG_OP = 'INSERT' THEN
+              new_val = row_to_json(NEW);
+              old_val = null;
+            ELSIF TG_OP = 'UPDATE' THEN
+              old_val = row_to_json(OLD);
+              new_val = row_to_json(NEW);
+            ELSE
+              old_val = row_to_json(OLD);
+              new_val = null;
+              END IF;
+            PERFORM pg_notify('watchers', json_build_object('table', TG_TABLE_NAME, 'old_val', old_val, 'new_val', new_val, 'type', TG_OP)::text);
             RETURN new;
           END;
         $$ LANGUAGE plpgsql;`
