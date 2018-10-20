@@ -45,7 +45,7 @@ class SchemaBuilder {
     const dropped_tables = current_tables.filter(e => !table_names.includes(e))
     await Promise.all([setupTables(this.schema.tables), dropTables(dropped_tables)])
     return Promise.all([
-      this.dropTriggers(dropped_tables),
+      this.dropTriggers(current_tables),
       this.initTriggers(table_names)
     ])
   }
