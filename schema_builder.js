@@ -16,11 +16,38 @@ class SchemaBuilder {
     const setupTables = (tables) => Promise.mapSeries(tables, this.setupTable.bind(this))
     const dropTables = (tables) => Promise.map(tables, this.query_wrapper.dropTable)
     const { knex } = this.query_wrapper
-    await knex.raw('create extension if not exists "uuid-ossp"')
+    await Promise.all([
+      knex.raw('create extension if not exists "uuid-ossp"'),
+      knex.raw(
+        `CREATE OR REPLACE FUNCTION notify_trigger() RETURNS trigger AS $$
+          DECLARE
+          BEGIN
+            PERFORM pg_notify('watchers', json_build_object('table', TG_TABLE_NAME, 'payload', NEW.id, 'type', TG_OP)::text);
+            RETURN new;
+          END;
+        $$ LANGUAGE plpgsql;`
+      )
+    ])
     const current_tables = (await this.query_wrapper._listTables()).map(e => e.tablename)
     const table_names = this.schema.tables.map(e => e.table_name)
-    const dropped_tables =  current_tables.filter(e => !table_names.includes(e))
-    return Promise.all(setupTables(this.schema.tables), dropTables(dropped_tables))
+    const dropped_tables = current_tables.filter(e => !table_names.includes(e))
+    await Promise.all([setupTables(this.schema.tables), dropTables(dropped_tables)])
+    return Promise.all([
+      this.dropTriggers(dropped_tables),
+      this.initTriggers(table_names)
+    ])
+  }
+
+  initTriggers(tables) {
+    const { knex } = this.query_wrapper
+    return Promise
+      .map(tables, table => knex.raw(`CREATE TRIGGER watched_table_trigger AFTER INSERT ON "${table}" FOR EACH ROW EXECUTE PROCEDURE notify_trigger();`))
+  }
+
+  dropTriggers(tables) {
+    const { knex } = this.query_wrapper
+    return Promise
+      .map(tables, table => knex.raw(`DROP TRIGGER watched_table_trigger ON ${table}`))
   }
 
   async setupTable(table) {
