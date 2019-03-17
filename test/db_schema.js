@@ -25,6 +25,11 @@ module.exports =  {
                     "type": "string",
                     "required": true,
                     "index": true,
+                    "validations": {
+                        alphanum: true,
+                        min: 5,
+                        max: 6
+                    }
                 },
                 {
                     "column_name": "company_id",

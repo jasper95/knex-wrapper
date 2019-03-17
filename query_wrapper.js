@@ -186,7 +186,7 @@ class QueryWrapper {
         let is_array, columns;
         ({ data, is_array, columns} = Validator
             .validateParams(
-                this.schema, table, data, Validator.validateCreate.bind(Validator))
+                this.schema, table, data, Validator.validateCreate)
             )
         if (is_array) {
             return this._withTransaction(
@@ -206,7 +206,7 @@ class QueryWrapper {
         let is_array, columns;
         ({ data, is_array, columns} = Validator
                 .validateParams(
-                    this.schema, table, data, Validator.validateCreate.bind(Validator), true
+                    this.schema, table, data, Validator.validateCreate, true
                 )
             )
         const upsertData = (e) => {
@@ -230,7 +230,7 @@ class QueryWrapper {
         let is_array, columns;
         ({ data, is_array, columns} = Validator
             .validateParams(
-                this.schema, table, data, Validator.validateUpdate.bind(Validator))
+                this.schema, table, data, Validator.validateUpdate)
             )
         const update = (e) =>
             this.knex
@@ -261,7 +261,7 @@ class QueryWrapper {
     deleteById(table, data) {
         let is_array, columns;
         ({ data, is_array, columns} = Validator
-            .validateParams(this.schema, table, data, Validator.validateDelete.bind(Validator)))
+            .validateParams(this.schema, table, data, Validator.validateDelete))
         let query = this.knex(table)
         if(is_array) {
             query = query
