@@ -13,8 +13,8 @@ class SchemaBuilder {
     const hasDatabase = await this.query_wrapper._checkDatabase()
     if (!hasDatabase)
       await this.query_wrapper.createDatabase(this.query_wrapper.config.connection.database)
-    const setupTables = (tables) => Promise.mapSeries(tables, this.setupTable.bind(this))
-    const dropTables = (tables) => Promise.map(tables, this.query_wrapper.dropTable)
+    const setupTables = (tables) => Promise.mapSeries(tables, e => this.setupTable(e))
+    const dropTables = (tables) => Promise.map(tables, e => this.query_wrapper.dropTable(e))
     const { knex } = this.query_wrapper
     await Promise.all([
       knex.raw('create extension if not exists "uuid-ossp"'),
@@ -45,7 +45,7 @@ class SchemaBuilder {
     const dropped_tables = current_tables.filter(e => !table_names.includes(e))
     await this.dropTriggers(current_tables)
     await Promise.all([setupTables(this.schema.tables), dropTables(dropped_tables)])
-    return this.initTriggers(table_names)
+    await this.initTriggers(table_names)
   }
 
   initTriggers(tables) {
@@ -57,7 +57,7 @@ class SchemaBuilder {
   dropTriggers(tables) {
     const { knex } = this.query_wrapper
     return Promise
-      .map(tables, table => knex.raw(`DROP TRIGGER watched_table_trigger ON ${table}`))
+      .map(tables, table => knex.raw(`DROP TRIGGER IF EXISTS watched_table_trigger ON "${table}"`))
   }
 
   async setupTable(table) {
