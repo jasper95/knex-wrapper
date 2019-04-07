@@ -66,7 +66,7 @@ class SchemaBuilder {
     const syncColumn = (col, t) => {
       const {
         type, type_params = [],
-        column_name, default: defaultTo = '',
+        column_name, default: defaultTo,
         required = false, unsigned = false} = col
       let query = t[type](column_name, ...[type_params])
       if (required) {
