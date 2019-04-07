@@ -77,10 +77,11 @@ class QueryWrapper {
 
             if (required) {
                 query = query.notNullable()
-            } else if (defaultTo || defaultTo === '' || defaultTo === 0) {
-                query = query.defaultTo(defaultTo)
             } else {
                 query = query.nullable()
+            }
+            if (defaultTo || defaultTo === '' || defaultTo === 0) {
+                query = query.defaultTo(defaultTo)
             }
             if (unsigned) {
                 query = query.unsigned()
