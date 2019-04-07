@@ -66,13 +66,13 @@ class QueryWrapper {
             })
     }
 
-    createColumns(table, columns) {
+    async createColumns(table, columns) {
         const initColumn = (col, t) => {
             const {
                 type, type_params = [],
                 unique, column_name, default: defaultTo,
                 required = false, unsigned = false, index,
-                foreign_key } = col
+            } = col
             let query = t[type](column_name, ...[type_params])
 
             if (required) {
@@ -92,22 +92,11 @@ class QueryWrapper {
             if (index) {
                 query = query.index()
             }
-            if (foreign_key) {
-                query.alter()
-                const {
-                reference_column, reference_table,
-                on_update, on_delete
-                } = col
-                t.foreign(column_name)
-                .references(reference_column)
-                .inTable(reference_table)
-                .onUpdate(on_update || 'NO ACTION')
-                .onDelete(on_delete || 'NO ACTION')
-            }
         }
-        return this.knex.schema.alterTable(table, (t) => {
+        await this.knex.schema.alterTable(table, (t) => {
             columns.forEach(e => initColumn(e, t))
         })
+        await Promise.mapSeries(columns.filter(e => e.foreign_key), (col) => this.createForeignKey(table, col))
     }
 
     createIndex(table, column) {
