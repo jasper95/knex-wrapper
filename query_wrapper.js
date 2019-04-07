@@ -93,6 +93,7 @@ class QueryWrapper {
                 query = query.index()
             }
             if (foreign_key) {
+                query.alter()
                 const {
                 reference_column, reference_table,
                 on_update, on_delete
