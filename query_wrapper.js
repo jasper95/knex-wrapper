@@ -96,7 +96,10 @@ class QueryWrapper {
         await this.knex.schema.alterTable(table, (t) => {
             columns.forEach(e => initColumn(e, t))
         })
-        await Promise.mapSeries(columns.filter(e => e.foreign_key), (col) => this.createForeignKey(table, col))
+        return Promise.mapSeries(
+            columns.filter(e => e.foreign_key),
+            ({ column_name, ...col}) => this.createForeignKey(table, { column: column_name, ...col })
+        )
     }
 
     createIndex(table, column) {
