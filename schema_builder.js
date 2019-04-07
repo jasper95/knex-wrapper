@@ -71,10 +71,11 @@ class SchemaBuilder {
       let query = t[type](column_name, ...[type_params])
       if (required) {
         query = query.notNullable()
-      } else if (defaultTo) {
-        query = query.defaultTo(defaultTo)
       } else {
-        query = query.nullable()
+          query = query.nullable()
+      }
+      if (defaultTo || defaultTo === '' || defaultTo === 0) {
+          query = query.defaultTo(defaultTo)
       }
       if (unsigned) {
         query = query.unsigned()
