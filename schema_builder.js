@@ -86,6 +86,7 @@ class SchemaBuilder {
     const hasTable = await knex.schema.hasTable(table_name)
     let new_columns = columns
     let table_columns = []
+    const old_columns = _.differenceBy(columns, new_columns, 'column_name')
     if (hasTable) {
       ([table_columns, new_columns] = await Promise.all([
         this.query_wrapper._listColumns(table_name),
@@ -99,9 +100,9 @@ class SchemaBuilder {
           .map(e => e.indexname)
       let current_fks = (await this.query_wrapper._listForeignKeys(table_name))
           .map(e => e.constraint_name)
-      await Promise.map(columns, col => this.updateIndex(table_name, col, current_indices))
-      await Promise.map(columns, col => this.updateUnique(table_name, col, current_indices))
-      await Promise.map(columns, col => this.updateForeignKey(table_name, col, current_fks))
+      await Promise.map(old_columns, col => this.updateIndex(table_name, col, current_indices))
+      await Promise.map(old_columns, col => this.updateUnique(table_name, col, current_indices))
+      await Promise.map(old_columns, col => this.updateForeignKey(table_name, col, current_fks))
     } else {
       await knex
         .schema
@@ -114,8 +115,7 @@ class SchemaBuilder {
       await this.query_wrapper.createColumns(table_name, new_columns)
     }
     await knex.schema.alterTable(table_name, (t) => {
-      _.differenceBy(columns, new_columns, 'column_name')
-        .map(col => syncColumn(col, t))
+      old_columns.map(col => syncColumn(col, t))
     })
   }
 
