@@ -1,6 +1,7 @@
 const Validator = require('./validator')
 const { returnColumns } = require('./utility')
 const util = require('util')
+const _ = require('lodash')
 
 class QueryWrapper {
     constructor(schema, knex, config) {
@@ -231,7 +232,7 @@ class QueryWrapper {
                 .table(table)
                 .where({ id: e.id})
                 .returning(returnColumns(columns))
-                .update(e)
+                .update(_.pick(e, columns))
                 .then(([res]) => res)
 
         if (is_array) {
