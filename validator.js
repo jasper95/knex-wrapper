@@ -20,6 +20,9 @@ function validateAndFormat(data, columns, action) {
   }
   const fields = returnColumns(columns)
   data = pick(data, fields)
+  if (action === 'delete') {
+    return data
+  }
   return Object.entries(data)
     .reduce((acc, [key, value]) => {
       if (!['id', 'created_at', 'updated_at'].includes(key)) {
