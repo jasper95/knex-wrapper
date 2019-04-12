@@ -227,12 +227,12 @@ class QueryWrapper {
             .validateParams(
                 this.schema, table, data, Validator.validateUpdate)
             )
+        const fields = returnColumns(columns)
         const update = (e) =>
             this.knex
                 .table(table)
                 .where({ id: e.id})
-                .returning(returnColumns(columns))
-                .update(_.pick(e, columns))
+                .update(_.pick(e, fields), fields)
                 .then(([res]) => res)
 
         if (is_array) {
@@ -248,8 +248,7 @@ class QueryWrapper {
         return this._withTransaction(
             this.knex(table)
             .where(filter)
-            .returning(returnColumns(columns))
-            .update(data)
+            .update(data, returnColumns(columns))
         )
     }
 
