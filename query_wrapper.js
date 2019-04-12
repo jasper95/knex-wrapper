@@ -2,6 +2,7 @@ const Validator = require('./validator')
 const { returnColumns } = require('./utility')
 const util = require('util')
 const _ = require('lodash')
+const Promise = require('bluebird')
 
 class QueryWrapper {
     constructor(schema, knex, config) {
@@ -181,7 +182,7 @@ class QueryWrapper {
         let is_array, columns;
         ({ data, is_array, columns} = Validator
             .validateParams(
-                this.schema, table, data, Validator.validateCreate)
+                this.schema, table, data, 'insert')
             )
         if (is_array) {
             return this._withTransaction(
@@ -201,17 +202,17 @@ class QueryWrapper {
         let is_array, columns;
         ({ data, is_array, columns} = Validator
                 .validateParams(
-                    this.schema, table, data, Validator.validateCreate, true
+                    this.schema, table, data, Validator.validateCreate, 'upsert'
                 )
             )
         const upsertData = (e) => {
-            let insert = this.knex(table).insert({...e})
-            delete e.id
-            let update = this.knex(table).returning(returnColumns(columns)).update(e)
-            let query = util.format('%s on conflict (id) do update set %s',
-              insert.toString(), update.toString().replace(/^update ([`"])[^\1]+\1 set/i, ''))
-            return this.knex.raw(query)
-                .then(res => res.rows[0])
+          let insert = this.knex(table).insert({...e})
+          delete e.id
+          let update = this.knex(table).returning(returnColumns(columns)).update(e)
+          let query = util.format('%s on conflict (id) do update set %s',
+            insert.toString(), update.toString().replace(/^update ([`"])[^\1]+\1 set/i, ''))
+          return this.knex.raw(query)
+              .then(res => res.rows[0])
         }
         if (is_array) {
             return this._withTransaction(
@@ -225,13 +226,13 @@ class QueryWrapper {
         let is_array, columns;
         ({ data, is_array, columns} = Validator
             .validateParams(
-                this.schema, table, data, Validator.validateUpdate)
+                this.schema, table, data, 'update')
             )
         const fields = returnColumns(columns)
         const update = (e) =>
             this.knex
                 .table(table)
-                .where({ id: e.id})
+                .where({ id: e.id })
                 .update(_.pick(e, fields), fields)
                 .then(([res]) => res)
 
@@ -253,18 +254,18 @@ class QueryWrapper {
     }
 
     deleteById(table, data) {
-        let is_array, columns;
-        ({ data, is_array, columns} = Validator
-            .validateParams(this.schema, table, data, Validator.validateDelete))
+        let is_array;
+        ({ data, is_array} = Validator
+            .validateParams(this.schema, table, data, 'delete'))
         let query = this.knex(table)
         if(is_array) {
             query = query
                 .where(builder => {
-                    builder.whereIn('id', data)
+                    builder.whereIn('id', data.map(e => e.id))
                 })
         } else {
             query = query
-                .where({ id: data })
+                .where(_.pick(data, 'id'))
         }
         return this._withTransaction(
             query

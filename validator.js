@@ -1,32 +1,42 @@
 const {
-    sql_type_mapper
+    sql_type_mapper,
+    sanitizeData,
+    returnColumns
 } = require('./utility')
+const { pick } = require('lodash')
 const joi = require('joi')
 
-function validateCreate(data, columns, upsert) {
-    data =  { ...data }
+function validateAndFormat(data, columns, action) {
+  if (['delete', 'update', 'upsert'].includes(action) && !data.id) {
+    throw { success: false, message: 'id is required' }
+  }
+  if (['insert', 'upsert'].includes(action)) {
     validateKeysExists(
-        columns.filter(e => e.required)
-            .map(e => e.column_name),
-        data
+      columns
+      .filter(e => e.required)
+      .map(e => e.column_name),
+      data
     )
-    Object.entries(data)
-        .forEach(([key, value]) => {
-            const column = columns.find(e => e.column_name === key)
-            if (column) {
-                const val_type = typeof value
-                const types = sql_type_mapper[val_type]
-                if (!types) {
-                    throw { success: false, message: `Type ${typeof value} not supported` }
-                } else if(!types.includes(column.type)) {
-                    throw { success: false, message: `Column ${column.column_name} type mismatch. Expected ${column.type} found ${val_type}`}
-                }
-            } else {
-                if((!upsert && key !== 'id') || !upsert)
-                    delete data[key]
-            }
-        })
-    return data
+  }
+  const fields = returnColumns(columns)
+  data = pick(data, fields)
+  return Object.entries(data)
+    .reduce((acc, [key, value]) => {
+      if (!['id', 'created_at', 'updated_at'].includes(key)) {
+        const column = columns.find(e => e.column_name === key)
+        const val_type = typeof value
+        const types = sql_type_mapper[val_type]
+        if (!types) {
+            throw { success: false, message: `Type ${typeof value} not supported` }
+        } else if(!types.includes(column.type)) {
+            throw { success: false, message: `Column ${column.column_name} type mismatch. Expected ${column.type} found ${val_type}`}
+        }
+        acc[key] = sanitizeData(value, column)
+      } else {
+        acc[key] = value
+      }
+      return acc
+    }, {})
 }
 
 function getObjectValidator(columns) {
@@ -55,31 +65,18 @@ function getObjectValidator(columns) {
     return joi.object.keys(object).required()
 }
 
-function validateUpdate(data) {
-    if (!data.id)
-        throw { message: 'id is required', success: false }
-    const { created_at, updated_at, ...rest } = data
-    return rest
-}
-
-function validateDelete(data) {
-    if (!data.id)
-        throw { message: 'id is required', success: false }
-    return data.id
-}
-
-function validateParams(schema, table, data, validator, upsert = false) {
+function validateParams(schema, table, data, action) {
     let columns = validateTableColumns(schema, table)
     let is_array = false
     if(Array.isArray(data)) {
         is_array = true
         if (data.length)
-            data = data.map(e => validator(e, columns))
+            data = data.map(e => validateAndFormat(e, columns, action))
         else
             throw { success: false, message: 'Data is Empty' }
     }
     else
-        data = validator(data, columns, upsert)
+        data = validateAndFormat(data, columns, action)
     return { data, is_array, columns }
 }
 
@@ -108,10 +105,7 @@ function validateKeysExists(keys, data) {
 }
 
 module.exports = {
-    validateCreate,
     getObjectValidator,
-    validateUpdate,
-    validateDelete,
     validateParams,
     validateKeysExists,
     validateTableColumns
