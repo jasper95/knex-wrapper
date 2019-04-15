@@ -6,6 +6,9 @@ function sanitizeData(value, column) {
   if (['date', 'datetime'].includes(column.type)) {
     return value ? new Date(value).toISOString() : null
   }
+  if (['json', 'jsonb'].includes(column.type)) {
+    return JSON.stringify(value)
+  }
   return value
 }
 
@@ -19,6 +22,9 @@ const sql_type_mapper = {
   ],
   boolean: [
     'boolean'
+  ],
+  object: [
+    'json', 'jsonb'
   ]
 }
 
