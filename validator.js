@@ -18,6 +18,11 @@ function validateAndFormat(data, columns, action) {
       data
     )
   }
+
+  if (['update', 'upsert'].includes(action) && !data.updated_date) {
+    data.updated_date = new Date().toISOString()
+  }
+
   const fields = returnColumns(columns)
   data = pick(data, fields)
   if (action === 'delete') {

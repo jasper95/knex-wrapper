@@ -108,7 +108,8 @@ class SchemaBuilder {
         .schema
         .createTable(table_name, (t) => {
           t.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary()
-          t.timestamps(true, true)
+          t.timestamp('created_date', { precision: 6, useTz: true }).defaultTo(this.knex.fn.now(6))
+          t.timestamp('updated_date', { precision: 6, useTz: true }).defaultTo(this.knex.fn.now(6))
         })
     }
     if (new_columns.length){
