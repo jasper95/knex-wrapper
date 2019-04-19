@@ -1,7 +1,7 @@
 const Promise = require('bluebird')
 const _ = require('lodash')
 
-const default_columns = ['id', 'created_at', 'updated_at']
+const default_columns = ['id', 'created_date', 'updated_date']
 
 class SchemaBuilder {
   constructor(schema, query_wrapper) {

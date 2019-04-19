@@ -169,7 +169,7 @@ class QueryWrapper {
         })
     }
 
-    filter(table, filter = {}, fields = [], sort = [{ column: 'created_at', direction: 'asc'}]) {
+    filter(table, filter = {}, fields = [], sort = [{ column: 'created_date', direction: 'asc'}]) {
         let query = this.knex(table)
                .select(...fields)
                .where(filter)

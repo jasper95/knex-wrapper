@@ -28,7 +28,7 @@ function validateAndFormat(data, columns, action) {
       const column = columns.find(e => e.column_name === key)
       if (column && column.type === 'uuid' && !value) {
         acc[key] = null
-      } else if (!['id', 'created_at', 'updated_at'].includes(key)) {
+      } else if (!['id', 'created_date', 'updated_date'].includes(key)) {
         const val_type = typeof value
         const types = sql_type_mapper[val_type]
         if (!types) {

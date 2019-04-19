@@ -1,5 +1,5 @@
 const returnColumns = (columns) => {
-  return ['id', 'created_at', 'updated_at', ...columns.map(e => e.column_name)]
+  return ['id', 'created_date', 'updated_date', ...columns.map(e => e.column_name)]
 }
 
 function sanitizeData(value, column) {
