@@ -90,6 +90,11 @@ describe('Query Wrapper Tests', () => {
             const result = await QueryWrapper.filter(table, {}, ['name', 'legal_name'])
             expect(result).deep.equal(arr)
         })
+        it('Query By Id', async() => {
+            const [data1] = await QueryWrapper.filter(table, {})
+            const data2 = await QueryWrapper.find(table, data1.id)
+            expect(data1).deep.equal(data2)
+        })
         it('Query List by filter', async() => {
             const [res1, res2] = await Promise.all([
                 QueryWrapper.filter(table, { name: 'in' }, ['name', 'legal_name']),

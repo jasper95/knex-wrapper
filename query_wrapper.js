@@ -170,6 +170,13 @@ class QueryWrapper {
         })
     }
 
+    find(table, id, fields = []) {
+        return this.knex(table)
+            .select(...fields)
+            .where({ id })
+            .first()
+    }
+
     filter(table, filter = {}, fields = [], sort = [{ column: 'created_date', direction: 'asc'}]) {
         let query = this.knex(table)
                .select(...fields)
