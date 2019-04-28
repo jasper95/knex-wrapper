@@ -46,7 +46,10 @@ class QueryWrapper {
         await this.knex.destroy()
         const { database } = this.config.connection
         delete this.config.connection.database
-        this.knex = knex(this.config)
+        this.knex = knex({
+            ...this.config,
+            pool: { min: 0, max: 1 }
+        })
         await this.knex
             .raw(action.toLowerCase())
             .catch(() => false)
