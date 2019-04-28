@@ -170,10 +170,10 @@ class QueryWrapper {
         })
     }
 
-    find(table, id, fields = []) {
+    find(table, id, fields = [], key_filter = 'id') {
         return this.knex(table)
             .select(...fields)
-            .where({ id })
+            .where({ [key_filter]: id })
             .first()
     }
 
