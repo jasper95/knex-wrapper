@@ -46,13 +46,13 @@ class QueryWrapper {
         await this.knex.destroy()
         const { database } = this.config.connection
         delete this.config.connection.database
-        await this.knex.initialize(this.config)
+        this.knex = knex(this.config)
         await this.knex
             .raw(action.toLowerCase())
             .catch(() => false)
         await this.knex.destroy()
         this.config.connection.database = database
-        await this.knex.initialize(this.config)
+        this.knex = knex(this.config)
         return true
     }
 
