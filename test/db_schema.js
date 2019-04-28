@@ -3,6 +3,7 @@ module.exports =  {
     "tables": [
         {
             "table_name": "tbl_Company",
+            slug: true,
             "columns": [
                 {
                     "column_name": "name",

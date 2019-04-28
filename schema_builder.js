@@ -15,6 +15,16 @@ class SchemaBuilder {
       await this.query_wrapper.createDatabase(this.query_wrapper.config.connection.database)
     const setupTables = (tables) => Promise.mapSeries(tables, e => this.setupTable(e))
     const dropTables = (tables) => Promise.map(tables, e => this.query_wrapper.dropTable(e))
+    await this.initSqlScripts()
+    const current_tables = (await this.query_wrapper._listTables()).map(e => e.tablename)
+    const table_names = this.schema.tables.map(e => e.table_name)
+    const dropped_tables = current_tables.filter(e => !table_names.includes(e))
+    await this.dropTriggers(current_tables)
+    await Promise.all([setupTables(this.schema.tables), dropTables(dropped_tables)])
+    await this.initTriggers(this.schema.tables)
+  }
+
+  async initSqlScripts() {
     const { knex } = this.query_wrapper
     await Promise.all([
       knex.raw('create extension if not exists "uuid-ossp"'),
@@ -37,31 +47,84 @@ class SchemaBuilder {
             PERFORM pg_notify('watchers', json_build_object('table', TG_TABLE_NAME, 'old_val', old_val, 'new_val', new_val, 'type', TG_OP)::text);
             RETURN new;
           END;
-        $$ LANGUAGE plpgsql;`
-      )
+        $$ LANGUAGE plpgsql;`,
+      ),
+      knex.raw('create extension if not exists "unaccent"'),
     ])
-    const current_tables = (await this.query_wrapper._listTables()).map(e => e.tablename)
-    const table_names = this.schema.tables.map(e => e.table_name)
-    const dropped_tables = current_tables.filter(e => !table_names.includes(e))
-    await this.dropTriggers(current_tables)
-    await Promise.all([setupTables(this.schema.tables), dropTables(dropped_tables)])
-    await this.initTriggers(table_names)
+    await knex.raw(`
+      CREATE OR REPLACE FUNCTION slugify("value" TEXT)
+      RETURNS TEXT AS $$
+        -- removes accents (diacritic signs) from a given string --
+        WITH "unaccented" AS (
+          SELECT unaccent("value") AS "value"
+        ),
+        -- lowercases the string
+        "lowercase" AS (
+          SELECT lower("value") AS "value"
+          FROM "unaccented"
+        ),
+        -- replaces anything that's not a letter, number, hyphen('-'), or underscore('_') with a hyphen('-')
+        "hyphenated" AS (
+          SELECT regexp_replace("value", '[^a-z0-9\\-_]+', '-', 'gi') AS "value"
+          FROM "lowercase"
+        ),
+        -- trims hyphens('-') if they exist on the head or tail of the string
+        "trimmed" AS (
+          SELECT regexp_replace(regexp_replace("value", '\\-+$', ''), '^\\-', '') AS "value"
+          FROM "hyphenated"
+        )
+        SELECT "value" FROM "trimmed";
+      $$ LANGUAGE SQL STRICT IMMUTABLE;
+    `)
+    await knex.raw(`
+      CREATE OR REPLACE FUNCTION set_slug_from_name() RETURNS trigger AS $$
+      BEGIN
+        NEW.slug := slugify(NEW.name);
+        RETURN NEW;
+      END
+      $$ LANGUAGE plpgsql;;
+    `)
   }
 
   initTriggers(tables) {
     const { knex } = this.query_wrapper
     return Promise
-      .map(tables, table => knex.raw(`CREATE TRIGGER watched_table_trigger AFTER INSERT ON "${table}" FOR EACH ROW EXECUTE PROCEDURE notify_trigger();`))
+      .map(tables, async ({ table_name, slug }) => {
+        if (slug) {
+          await knex.raw(`
+            CREATE TRIGGER create_slug_trigger
+            BEFORE INSERT ON "${table_name}"
+            FOR EACH ROW
+            WHEN (NEW.name IS NOT NULL AND NEW.slug IS NULL)
+            EXECUTE PROCEDURE set_slug_from_name();`)
+        }
+        return knex.raw(`CREATE TRIGGER watched_table_trigger AFTER INSERT ON "${table_name}" FOR EACH ROW EXECUTE PROCEDURE notify_trigger();`)
+      })
   }
 
   dropTriggers(tables) {
     const { knex } = this.query_wrapper
     return Promise
-      .map(tables, table => knex.raw(`DROP TRIGGER IF EXISTS watched_table_trigger ON "${table}"`))
+      .map(tables, async (table) => {
+        await knex.raw(`DROP TRIGGER IF EXISTS create_slug_trigger ON "${table}"`)
+        return knex.raw(`DROP TRIGGER IF EXISTS watched_table_trigger ON "${table}"`)
+      })
   }
 
   async setupTable(table) {
-    const { table_name, columns } = table
+    const { table_name, slug } = table
+    let { columns } = table
+    if (slug) {
+      columns = [
+        ...columns,
+        {
+          column_name: 'slug',
+          type: 'string',
+          required: true,
+          unique: true
+        }
+      ]
+    }
     const { knex } = this.query_wrapper
     const syncColumn = (col, t) => {
       const {
@@ -104,13 +167,7 @@ class SchemaBuilder {
       await Promise.map(old_columns, col => this.updateUnique(table_name, col, current_indices))
       await Promise.map(old_columns, col => this.updateForeignKey(table_name, col, current_fks))
     } else {
-      await knex
-        .schema
-        .createTable(table_name, (t) => {
-          t.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary()
-          t.timestamp('created_date', { precision: 6, useTz: true }).defaultTo(knex.fn.now(6))
-          t.timestamp('updated_date', { precision: 6, useTz: true }).defaultTo(knex.fn.now(6))
-        })
+      await this.query_wrapper.createTable(table_name)
     }
     if (new_columns.length){
       await this.query_wrapper.createColumns(table_name, new_columns)

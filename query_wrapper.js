@@ -63,9 +63,9 @@ class QueryWrapper {
     createTable(table) {
         return this.knex.schema
             .createTable(table, (t) => {
-                t.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary()
-                table.timestamp('created_date', { precision: 6, useTz: true }).defaultTo(this.knex.fn.now(6))
-                table.timestamp('updated_date', { precision: 6, useTz: true }).defaultTo(this.knex.fn.now(6))
+                t.uuid('id').defaultTo(this.knex.raw('uuid_generate_v4()')).primary()
+                t.timestamp('created_date', { precision: 6, useTz: true }).defaultTo(this.knex.fn.now(6))
+                t.timestamp('updated_date', { precision: 6, useTz: true }).defaultTo(this.knex.fn.now(6))
             })
     }
 
