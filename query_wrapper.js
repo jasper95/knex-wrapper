@@ -3,11 +3,11 @@ const { returnColumns } = require('./utility')
 const util = require('util')
 const _ = require('lodash')
 const Promise = require('bluebird')
+const knex = require('knex')
 
 class QueryWrapper {
-    constructor(schema, knex, config) {
+    constructor(schema, config) {
         this.schema = schema
-        this.knex_lib = knex
         this.knex = knex(config)
         this.config = config
     }
@@ -42,18 +42,18 @@ class QueryWrapper {
             .then(res => Object.keys(res))
     }
 
-    async _createOrDropDatabase(action, database) {
-        await this.knex.destroy() // destroy temporarily
+    async _createOrDropDatabase(action) {
+        await this.knex.destroy()
+        const { database } = this.config.connection
         delete this.config.connection.database
-        this.knex = this.knex_lib(this.config) //
-        return this.knex
+        await this.knex.initialize(this.config)
+        await this.knex
             .raw(action.toLowerCase())
-            .then(() => {
-                this.config.connection.database = database
-                this.knex = this.knex_lib(this.config)
-                return true
-            })
             .catch(() => false)
+        await this.knex.destroy()
+        this.config.connection.database = database
+        await this.knex.initialize(this.config)
+        return true
     }
 
     async createDatabase(database) {
