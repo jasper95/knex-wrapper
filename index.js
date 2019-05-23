@@ -1,5 +1,5 @@
 module.exports = {
-  QueryWrapper: require('./query_wrapper'),
-  SchemaBuilder: require('./schema_builder'),
+  QueryWrapper: require('./queryWrapper'),
+  SchemaBuilder: require('./schemaBuilder'),
   Validator: require('./validator')
 }

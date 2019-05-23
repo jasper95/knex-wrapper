@@ -3,7 +3,7 @@ const {
     sanitizeData,
     returnColumns
 } = require('./utility')
-const { pick } = require('lodash')
+const { pick, get } = require('lodash')
 const joi = require('joi')
 
 function validateAndFormat(data, columns, action) {
@@ -104,10 +104,7 @@ function validateKeysExists(keys, data) {
     const provided_keys = Object.keys(data)
     return keys
         .every(key => {
-            if (
-                (!provided_keys.includes(key))
-                || (typeof data[key] === 'string' && !data[key])
-            ) {
+            if (!provided_keys.includes(key) || !get(data, key)) {
                 throw { success: false, message: `${key} is required` }
             }
             return true
