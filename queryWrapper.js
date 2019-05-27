@@ -45,7 +45,7 @@ class QueryWrapper {
     async _createOrDropDatabase(action) {
         await this.knex.destroy()
         const { database } = this.config.connection
-        delete this.config.connection.database
+        this.config.connection.database = 'postgres'
         this.knex = knex({
             ...this.config,
             pool: { min: 0, max: 1 }
