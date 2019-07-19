@@ -38,7 +38,7 @@ function validateAndFormat(data, columns, action) {
         const types = sql_type_mapper[val_type]
         if (!types) {
             throw { success: false, message: `Type ${typeof value} not supported` }
-        } else if(!types.includes(column.type)) {
+        } else if(!types.includes(column.type) && ![null, undefined].includes(value)) {
             throw { success: false, message: `Column ${column.column_name} type mismatch. Expected ${column.type} found ${val_type}`}
         }
         acc[key] = sanitizeData(value, column)
