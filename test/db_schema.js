@@ -1,9 +1,8 @@
 module.exports =  {
-    "database": "db_template",
+    database: 'sampledb',
     "tables": [
         {
             "table_name": "tbl_Company",
-            slug: true,
             "columns": [
                 {
                     "column_name": "name",
@@ -40,7 +39,7 @@ module.exports =  {
                     "reference_table": "tbl_Company",
                     "reference_column": "id",
                     "on_update": 'CASCADE',
-                    "on_delete": 'RESTRICT'
+                    "on_delete": 'CASCADE'
                 }
             ]
         }

@@ -5,6 +5,7 @@ const {
 } = require('./utility')
 const { pick, get } = require('lodash')
 const joi = require('joi')
+const uuid = require('uuid/v1')
 
 function validateAndFormat(data, columns, action) {
   if (['delete', 'update', 'upsert'].includes(action) && !data.id) {

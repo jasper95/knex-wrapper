@@ -20,20 +20,41 @@ class QueryWrapper {
 
     _listTables() {
         return this.knex
-            .raw(`SELECT * FROM pg_catalog.pg_tables WHERE schemaname='public'`)
-            .then(res => res.rows)
+            .raw(`SELECT tablename = t.TABLE_NAME FROM INFORMATION_SCHEMA.tables t`)
     }
 
     _listIndices(table) {
-        return this.knex
-            .raw(`select * from pg_indexes where tablename = '${table}'`)
-            .then(res => res.rows)
+        return this.knex.raw(`
+            SELECT
+                indexname = ind.name
+                FROM 
+                    sys.indexes ind
+                INNER JOIN 
+                    sys.index_columns ic ON  ind.object_id = ic.object_id and ind.index_id = ic.index_id 
+                INNER JOIN 
+                    sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id 
+                INNER JOIN 
+                    sys.tables t ON ind.object_id = t.object_id 
+                WHERE 
+                    ind.is_primary_key = 0 
+                    AND ind.is_unique = 0 
+                    AND ind.is_unique_constraint = 0 
+                    AND t.is_ms_shipped = 0
+                    AND t.name = '${table}'
+        `)
     }
 
     _listForeignKeys(table) {
         return this.knex
-            .raw(`select * from information_schema.table_constraints where table_name = '${table}' AND constraint_type = 'FOREIGN KEY'`)
-            .then(res => res.rows)
+            .raw(`
+                select
+                    constraint_name = tc.CONSTRAINT_NAME
+                from
+                    information_schema.table_constraints tc
+                where
+                    table_name = '${table}'
+                    AND constraint_type = 'FOREIGN KEY'
+        `)
     }
 
     _listColumns(table) {
@@ -45,7 +66,7 @@ class QueryWrapper {
     async _createOrDropDatabase(action) {
         await this.knex.destroy()
         const { database } = this.config.connection
-        this.config.connection.database = 'postgres'
+        this.config.connection.database = 'tempdb'
         this.knex = knex({
             ...this.config,
             pool: { min: 0, max: 1 }
@@ -66,9 +87,9 @@ class QueryWrapper {
     createTable(table) {
         return this.knex.schema
             .createTable(table, (t) => {
-                t.uuid('id').defaultTo(this.knex.raw('uuid_generate_v4()')).primary()
-                t.timestamp('created_date', { precision: 6, useTz: true }).defaultTo(this.knex.fn.now(6))
-                t.timestamp('updated_date', { precision: 6, useTz: true }).defaultTo(this.knex.fn.now(6))
+                t.uuid('id').defaultTo(this.knex.raw('newid()')).primary()
+                t.timestamp('created_date', { precision: 6, useTz: true }).defaultTo(this.knex.fn.now())
+                t.timestamp('updated_date', { precision: 6, useTz: true }).defaultTo(this.knex.fn.now())
             })
     }
 
@@ -195,18 +216,14 @@ class QueryWrapper {
             .validateParams(
                 this.schema, table, data, 'insert')
             )
+        const fields = returnColumns(columns)
         if (is_array) {
-            return this._withTransaction(
-                this.knex
-                    .batchInsert(table, data, options.batch_size)
-                    .returning(returnColumns(columns))
-            )
+            return this.knex
+                .batchInsert(table, data, options.batch_size)
+                .returning(fields)
         }
         return this
-            .knex(table)
-            .returning(returnColumns(columns))
-            .insert(data)
-            .then(response => response[0])
+            ._insert(table, data, fields)
     }
 
     upsert(table, data) {
@@ -216,19 +233,19 @@ class QueryWrapper {
                     this.schema, table, data, Validator.validateCreate, 'upsert'
                 )
             )
+        const fields = returnColumns(columns)
         const upsertData = (e) => {
-          let insert = this.knex(table).insert({...e})
-          delete e.id
-          let update = this.knex(table).returning(returnColumns(columns)).update(e)
-          let query = util.format('%s on conflict (id) do update set %s',
-            insert.toString(), update.toString().replace(/^update ([`"])[^\1]+\1 set/i, ''))
-          return this.knex.raw(query)
-              .then(res => res.rows[0])
+            if (!e.id) return this._insert(table, e, fields)
+            return this
+            ._update(table, e, fields)
+            .then((response) => {
+                if (!response)
+                    return this._insert(table, e, fields)
+                return response
+            })
         }
         if (is_array) {
-            return this._withTransaction(
-                Promise.map(data, upsertData)
-            )
+            return Promise.map(data, upsertData)
         }
         return upsertData(data)
     }
@@ -240,28 +257,33 @@ class QueryWrapper {
                 this.schema, table, data, 'update')
             )
         const fields = returnColumns(columns)
-        const update = (e) =>
-            this.knex
-                .table(table)
-                .where({ id: e.id })
-                .update(_.pick(e, fields), fields)
-                .then(([res]) => res)
-
         if (is_array) {
-            return this._withTransaction(
-                Promise.map(data, update)
-            )
+            return Promise.map(data, e => this._update(table, e, fields))
         }
-        return update(data)
+        return this._update(table, data, fields)
+    }
+
+    _insert(table, data, fields) {
+        return this
+        .knex(table)
+        .returning(fields)
+        .insert(data)
+        .then(([response2]) => response2)
+    }
+
+    _update(table, data, fields) {
+        return this.knex
+            .table(table)
+            .where({ id: data.id })
+            .update(_.pick(data, fields), fields)
+            .then(([res]) => res)
     }
 
     updateByFilter(table, data, filter = {}) {
         const columns = Validator.validateTableColumns(this.schema, table)
-        return this._withTransaction(
-            this.knex(table)
-            .where(filter)
-            .update(data, returnColumns(columns))
-        )
+        return this.knex(table)
+        .where(filter)
+        .update(data, returnColumns(columns))
     }
 
     deleteById(table, data) {
@@ -278,21 +300,17 @@ class QueryWrapper {
             query = query
                 .where(_.pick(data, 'id'))
         }
-        return this._withTransaction(
-            query
-                .returning('id')
-                .delete()
-                .then((res) => is_array ? res : res[0])
-        )
+        return query
+            .returning('id')
+            .delete()
+            .then((res) => is_array ? res : res[0])
     }
 
     deleteByFilter(table, filter = {}) {
-        return this._withTransaction(
-            this.knex(table)
-                .where(filter)
-                .returning('id')
-                .delete()
-        )
+        return this.knex(table)
+        .where(filter)
+        .returning('id')
+        .delete()
     }
 }
 
