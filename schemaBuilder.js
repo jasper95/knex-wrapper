@@ -18,7 +18,8 @@ class SchemaBuilder {
     const current_tables = (await this.query_wrapper._listTables()).map(e => e.tablename)
     const table_names = this.schema.tables.map(e => e.table_name)
     const dropped_tables = current_tables.filter(e => !table_names.includes(e) || e !== 'database_firewall_rules')
-    await Promise.all([setupTables(this.schema.tables), dropTables(dropped_tables)])
+    await dropTables(dropped_tables)
+    await setupTables(setupTables)
   }
 
   async setupTable(table) {
