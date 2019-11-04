@@ -201,13 +201,27 @@ class QueryWrapper {
             .first()
     }
 
-    filter(table, filter = {}, fields = [], sort = [{ column: 'created_date', direction: 'asc'}]) {
+    filter(table, filter = {}, fields = [], sort = [{ column: 'created_date', direction: 'asc'}], pagination = {}) {
+        const { page, size } = pagination
         let query = this.knex(table)
-               .select(...fields)
-               .where(filter)
-       return sort.reduce((q, sortEl) => {
-           return q.orderBy(sortEl.column, sortEl.direction)
-       }, query)
+          .where(filter)
+        if (![page, size].includes(undefined)) {
+          const count = query.clone()
+            .count()
+            .then((response) => response[0].count)
+          query = sort.reduce((q, sortEl) => q.orderBy(sortEl.column, sortEl.direction), query)
+          query = query
+            .offset(Number(page) * Number(size))
+            .limit(Number(size))
+            .select(...fields)
+    
+          return Promise.props({
+            data: query,
+            count
+          })
+        }
+        return sort.reduce((q, sortEl) => q.orderBy(sortEl.column, sortEl.direction),
+          query.select(...fields))
    }
 
     insert(table, data, options = { batch_size: 1000 }) {
