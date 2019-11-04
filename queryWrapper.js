@@ -207,7 +207,7 @@ class QueryWrapper {
           .where(filter)
         if (![page, size].includes(undefined)) {
           const count = query.clone()
-            .count()
+            .count({ count: '*' })
             .then((response) => response[0].count)
           query = sort.reduce((q, sortEl) => q.orderBy(sortEl.column, sortEl.direction), query)
           query = query
