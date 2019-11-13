@@ -202,26 +202,40 @@ class QueryWrapper {
     }
 
     filter(table, filter = {}, fields = [], sort = [{ column: 'created_date', direction: 'asc'}], pagination = {}) {
+        const pagination = options.pagination || {}
+        const sort= options.sort || [{ column: 'created_date', direction: 'asc'}]
+        const fields = options.fields || []
+        const search = options.search || { fields: [], value: '' }
         const { page, size } = pagination
         let query = this.knex(table)
-          .where(filter)
+            .where(filter)
+        const { value: search_value = '', fields: search_fields = [] } = search || {}
+        if (search_value && search_fields.length) {
+            query = query.andWhere((builder) => {
+                return search_fields
+                .filter(e => e !== 'id')
+                .reduce((q, field) => {
+                    return q.orWhere(field, 'ilike', `%${search_value}%`)
+                }, builder)
+            })
+        }
         if (![page, size].includes(undefined)) {
-          const count = query.clone()
-            .count({ count: '*' })
-            .then((response) => response[0].count)
-          query = sort.reduce((q, sortEl) => q.orderBy(sortEl.column, sortEl.direction), query)
-          query = query
-            .offset(Number(page) * Number(size))
-            .limit(Number(size))
-            .select(...fields)
-    
-          return Promise.props({
-            data: query,
-            count
-          })
+            const count = query.clone()
+                .count({ count: '*' })
+                .then((response) => response[0].count)
+            query = sort.reduce((q, sortEl) => q.orderBy(sortEl.column, sortEl.direction), query)
+            query = query
+                .offset(Number(page) * Number(size))
+                .limit(Number(size))
+                .select(...fields)
+
+            return Promise.props({
+                data: query,
+                count
+            })
         }
         return sort.reduce((q, sortEl) => q.orderBy(sortEl.column, sortEl.direction),
-          query.select(...fields))
+            query.select(...fields))
    }
 
     insert(table, data, options = { batch_size: 1000 }) {
