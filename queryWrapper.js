@@ -201,7 +201,7 @@ class QueryWrapper {
             .first()
     }
 
-    filter(table, filter = {}, fields = [], sort = [{ column: 'created_date', direction: 'asc'}], pagination = {}) {
+    filter(table, filter = {}, options = {}) {
         const pagination = options.pagination || {}
         const sort= options.sort || [{ column: 'created_date', direction: 'asc'}]
         const fields = options.fields || []
