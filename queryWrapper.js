@@ -215,7 +215,7 @@ class QueryWrapper {
                 return search_fields
                 .filter(e => e !== 'id')
                 .reduce((q, field) => {
-                    return q.orWhere(field, 'ilike', `%${search_value}%`)
+                    return q.orWhereRaw(`LOWER(${field}) LIKE '%' || LOWER(?) || '%' `, search_value)
                 }, builder)
             })
         }
