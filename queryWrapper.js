@@ -20,7 +20,7 @@ class QueryWrapper {
 
     _listTables() {
         return this.knex
-            .raw(`SELECT tablename = t.TABLE_NAME FROM INFORMATION_SCHEMA.tables t`)
+            .raw(`SELECT tablename = t.TABLE_NAME FROM sys.tables t`)
     }
 
     _listIndices(table) {
