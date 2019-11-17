@@ -18,7 +18,7 @@ const sql_type_mapper = {
       'decimal', 'float',
   ],
   string: [
-      'string', 'uuid', 'date', 'datetime', 'timestamp'
+      'string', 'uuid', 'date', 'datetime', 'timestamp', 'text'
   ],
   boolean: [
     'boolean'
