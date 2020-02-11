@@ -43,19 +43,16 @@ class QueryWrapper {
     }
 
     async _createOrDropDatabase(action) {
-        await this.knex.destroy()
-        const { database } = this.config.connection
-        this.config.connection.database = 'postgres'
-        this.knex = knex({
-            ...this.config,
-            pool: { min: 0, max: 1 }
+        const temp_config = _.cloneDeep({
+        ...this.config,
+        pool: { min: 0, max: 1 },
         })
-        await this.knex
-            .raw(action.toLowerCase())
-            .catch(() => false)
-        await this.knex.destroy()
-        this.config.connection.database = database
-        this.knex = knex(this.config)
+        _.set(temp_config, 'connection.database', 'postgres')
+        const temp_knex = knex(temp_config)
+        await temp_knex.raw(action.toLowerCase()).catch(err => {
+            console.log('err: ', err)
+        })
+        await temp_knex.destroy()
         return true
     }
 
